@@ -1,4 +1,4 @@
-package com.looxon.model;
+package com.looxon;
 
 import java.util.Arrays;
 
