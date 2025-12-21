@@ -1,11 +1,16 @@
 package com.looxon;
 
+import ch.qos.logback.classic.Level;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.realzimboguy.ewelink.api.EweLink;
 import com.github.realzimboguy.ewelink.api.model.home.OutletSwitch;
+import com.github.realzimboguy.ewelink.api.model.home.Thing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
@@ -15,29 +20,57 @@ import java.util.List;
 public class EwelinkController {
 
     private static final Logger log = LoggerFactory.getLogger(EwelinkController.class);
+    public static final String OFF = "off";
+    public static final String ON = "on";
+    public static final String EMAIL = "speque.login@gmail.com";
     private EweLink eweLink;
 
     @GetMapping("/devices")
-    public List<String> getDevices() throws Exception {
+    public ResponseEntity<String> getDevices() throws Exception {
         eweLink = setupEwelink();
-        return eweLink.getThings().stream().map(t -> t.getItemData().getName()+"-"+t.getItemData().getDeviceid()).toList();
+
+
+        List<Thing> things = eweLink.getThings();
+
+        List<String> result = things.stream()
+                .map(t -> t.getItemData().getDeviceid() + ":" + t.getItemData().getName())
+                .toList();
+
+        ObjectMapper mapper = new ObjectMapper();
+        String json = mapper.writeValueAsString(result);
+
+        return ResponseEntity.ok(json);
     }
 
-    @GetMapping("/device/{id}")
-    public String switchDevice(@PathVariable("id") String id) throws Exception {
+    @PostMapping("/device/{id}")
+    public String switchDevice(@PathVariable("id") String id, String givenStatus) throws Exception {
         eweLink = setupEwelink();
-        eweLink.setDeviceStatus(id, "on");
-        return "done";
+        Thing thing = eweLink.getThings().stream().filter(t -> t.getItemData().getDeviceid().equals(id)).findFirst().get();
+        log.info(givenStatus == null ? "no parameter - switch" : "parameter - set to " + givenStatus);
+        String value = thing.getItemData().getParams().getSwitch();
+        log.info("current state: " + value);
+        String status = givenStatus != null ? givenStatus : ON.equals(value) ? OFF : ON;
+        log.info("switching " + id + " " + status + " [" + thing.getItemData().getName() + "]");
+        eweLink.setDeviceStatus(id, status);
+        log.info("done");
+        return thing.getItemData().getParams().getSwitch();
     }
 
     private EweLink setupEwelink() throws Exception {
         if (eweLink == null) {
-            log.info("logging...");
-            eweLink = new EweLink("eu", "speque.login@gmail.com", "ekapi34!IE", "+48", 0);
+            turnOffEwelinkLogs();
+            log.info("login " + EMAIL);
+            eweLink = new EweLink("eu", EMAIL, "ekapi34!IE", "+48", 0);
             eweLink.login();
         }
-        log.info("logged in");
+        log.info("successfuly logged in");
         return eweLink;
+    }
+
+    private static void turnOffEwelinkLogs() {
+        ch.qos.logback.classic.Logger logger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger("com.github.realzimboguy.ewelink");
+        Level original = logger.getLevel();
+        logger.setLevel(Level.OFF);  // or Level.ERROR
     }
 
     private void setDeviceStates(String id, boolean state0, boolean state1, boolean state2, boolean state3) throws Exception {
@@ -52,7 +85,7 @@ public class EwelinkController {
     private OutletSwitch createSwitch(int outlet, boolean state) {
         OutletSwitch outletSwitch = new OutletSwitch();
         outletSwitch.setOutlet(outlet);
-        outletSwitch.set_switch(state ? "on" : "off");
+        outletSwitch.set_switch(state ? ON : OFF);
         return outletSwitch;
     }
 }
