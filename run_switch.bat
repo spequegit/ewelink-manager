@@ -1,0 +1,1 @@
+java -jar target\ewelink-manager-1.0.0.jar 10005d47f9
