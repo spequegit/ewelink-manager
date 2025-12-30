@@ -2,48 +2,68 @@ package com.looxon;
 
 import org.quartz.CronExpression;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.text.ParseException;
-import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
-import static com.looxon.EwelinkRestController.log;
+import static com.looxon.Application.log;
 
 @Component
 public class Scheduler {
 
-    public static final String SOFTENER_EXECUTION =     "0 30 0 5,20 * ?";
-    public static final String EVERY_5_SECONDS =    "*/5 * * * * ?";
-    public static final String EVERY_MINUTE =       "* * * * * ?";
-    public static final String EVERY_2_MINUTES =   "0 */2 * * * ?";
-    public static final String EVERY_30_MINUTES =   "* */30 * * * ?";
-    public static final String SOFTENER_EXECUTION_INFO = "0 0/10 * * * ?";
+//    public static final String SOFTENER_EXECUTION = "0 30 0 5,20 * ?";
+//    public static final String SOFTENER_EXECUTION_INFO = "0 0/10 * * * ?";
+//    public static final String EVERY_5_SECONDS = "*/5 * * * * ?";
+//    public static final String EVERY_MINUTE = "* * * * * ?";
+//    public static final String EVERY_2_MINUTES = "0 */2 * * * ?";
+//    public static final String EVERY_30_MINUTES = "* */30 * * * ?";
+
     @Autowired
     private EwelinkRestController controller;
     @Autowired
     private ChristmasLightsController christmasLightsController;
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+    @Autowired
+    private Environment environment;
 
-    @Scheduled(cron = "0 0/15 16-22 * * ?")
-    public void randomizeChristmasLights() throws Exception {
+    @Scheduled(initialDelay = 10)
+    public void initial() throws Exception {
+        log.info("-------------------------------------------------------------------");
+        log.info("christmas-lights.randomize " + property("christmas-lights.randomize"));
+        log.info("christmas-lights.powerOff " + property("christmas-lights.powerOff"));
+        log.info("softener-execution.info " + property("softener-execution.info"));
+        log.info("softener-execution.start " + property("softener-execution.start"));
+        log.info("-------------------------------------------------------------------");
+    }
+    @Scheduled(cron = "*/30 * * * * ?")
+    public void showTestValue() {
+        log.info(property("test-value"));
+    }
+
+    private String property(String key) {
+        return environment.getProperty(key);
+    }
+
+    @Scheduled(cron = "${christmas-lights.randomize}")
+    public void christmasLightsRandomize() throws Exception {
         christmasLightsController.randomize();
     }
 
-    @Scheduled(cron = "0 0 23 * * ?")
-    public void offChristmasLights() throws Exception {
+    @Scheduled(cron = "${christmas-lights.powerOff}")
+    public void christmasLightsOff() throws Exception {
         christmasLightsController.turnOffAllLights();
     }
 
-    @Scheduled(cron = SOFTENER_EXECUTION_INFO)
+    @Scheduled(cron = "${softener-execution.info}")
     public void showRemainingTimeForSoftener() throws ParseException {
-        log.info("softener process begin: " + showNextExecutionTime(SOFTENER_EXECUTION));
+        log.info("softener process begin: " + showNextExecutionTime(property("softener-execution.info")));
     }
 
-    @Scheduled(cron = SOFTENER_EXECUTION)
+    @Scheduled(cron = "${softener-execution.start}")
     public void runWaterSoftenerProcess() throws Exception {
         controller.runWaterSoftenerProcess();
     }

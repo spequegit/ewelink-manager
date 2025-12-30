@@ -1,0 +1,11 @@
+christmas-lights:
+  randomize: "0 0/20 16-22 * * ?"       # co 20 min od 16tej do 22tej
+  powerOff: "0 5 23 * * ?"              # wylacz o 23:05
+
+softener-execution:
+  start: "0 30 0 5,20 * ?"
+  info: "0 0/10 * * * ?"
+
+test-value: "I am alive !"
+
+# disable my.task.cron: "-"

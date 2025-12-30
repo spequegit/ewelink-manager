@@ -7,7 +7,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import static com.looxon.Application.log;
 import static com.looxon.EwelinkRestController.*;
+import static com.looxon.EwelinkService.OFF;
+import static com.looxon.EwelinkService.ON;
 
 @Component
 public class ChristmasLightsController {
@@ -43,5 +46,6 @@ public class ChristmasLightsController {
 
     public void turnOffAllLights() throws Exception {
         controller.switchDevice(ID, OFF, OFF, OFF, OFF);
+        log.info("christmas lights off");
     }
 }
